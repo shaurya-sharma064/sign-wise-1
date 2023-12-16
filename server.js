@@ -170,6 +170,7 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
         assistant_id:constants.OPEN_AI_ASSITANT_ID
     })
 
+
     let status=""
     while(status!="completed"){
         const test = await openai.beta.threads.runs.retrieve(
