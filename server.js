@@ -128,63 +128,63 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
 
     
 
-    // const images=req?.files;
-    // console.log(images)
-    // const url="https://vision.googleapis.com/v1/images:annotate?key="+constants.GOOLE_VISION_API_KEY;
-    // concated_ocr="";
-    // let res_array=[];
+    const images=req?.files;
+    console.log(images)
+    const url="https://vision.googleapis.com/v1/images:annotate?key="+constants.GOOLE_VISION_API_KEY;
+    concated_ocr="";
+    let res_array=[];
 
-    // for (const image of images){
-    //     const image_content=fs.readFileSync(image.path).toString('base64');
-    //     const payload = {
-    //         "requests": [
-    //           {
-    //             "image": { "content": image_content },
-    //             "features": [{ "type": "TEXT_DETECTION" }],
-    //           },
-    //         ],
-    //       };
+    for (const image of images){
+        const image_content=fs.readFileSync(image.path).toString('base64');
+        const payload = {
+            "requests": [
+              {
+                "image": { "content": image_content },
+                "features": [{ "type": "TEXT_DETECTION" }],
+              },
+            ],
+          };
           
-    //     res_array.push( axios.post(url, payload))
+        res_array.push( axios.post(url, payload))
 
-    // }
-    // res_array=await Promise.all(res_array);
-    // for (const res of res_array){
-    //     concated_ocr+=res.data.responses[0].fullTextAnnotation.text;
-    // }
+    }
+    res_array=await Promise.all(res_array);
+    for (const res of res_array){
+        concated_ocr+=res.data.responses[0].fullTextAnnotation.text;
+    }
 
-    // // console.log(concated_ocr.length);
-    // // return;
+    // console.log(concated_ocr.length);
+    // return;
 
 
-    // const thread= await openai.beta.threads.create();
-    // const threadId=thread.id;
+    const thread= await openai.beta.threads.create();
+    const threadId=thread.id;
 
-    // const message= await openai.beta.threads.messages.create(threadId,{
-    //     role:'user',
-    //     content: concated_ocr.substring(0,32000)
-    // })
+    const message= await openai.beta.threads.messages.create(threadId,{
+        role:'user',
+        content: concated_ocr.substring(0,32000)
+    })
 
     
-    // const run = await openai.beta.threads.runs.create(threadId,{
-    //     assistant_id:constants.OPEN_AI_ASSITANT_ID
-    // })
+    const run = await openai.beta.threads.runs.create(threadId,{
+        assistant_id:constants.OPEN_AI_ASSITANT_ID
+    })
 
-    // let status=""
-    // while(status!="completed"){
-    //     const test = await openai.beta.threads.runs.retrieve(
-    //         threadId, 
-    //         run.id
-    //     )
-    //     status=test.status
-    // }
+    let status=""
+    while(status!="completed"){
+        const test = await openai.beta.threads.runs.retrieve(
+            threadId, 
+            run.id
+        )
+        status=test.status
+    }
     
-    // const messages= await openai.beta.threads.messages.list(threadId);
-    // res=messages.body.data[0].content[0].text.value
-    // console.log(JSON.parse(res))
+    const messages= await openai.beta.threads.messages.list(threadId);
+    res=messages.body.data[0].content[0].text.value
+    console.log(JSON.parse(res))
 
-    const query = "INSERT INTO consult_data () VALUES ();"
-    executeQuery(query)
+    // const query = "INSERT INTO consult_data () VALUES ();"
+    // executeQuery(query)
     // uploadImagesV2(,images)
     res.json({ "OCR": "ok" });
     // res.json({ OCR: res });
