@@ -186,7 +186,7 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
     // const query = "INSERT INTO consult_data () VALUES ();"
     // executeQuery(query)
     // uploadImagesV2(,images)
-    res.json({ "OCR": "ok" });
+    res.json({ OCR: "ok" });
     // res.json({ OCR: res });
 
 });
