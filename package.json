@@ -1,0 +1,30 @@
+{
+  "name": "sign-wise",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shaurya-sharma064/sign-wise.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shaurya-sharma064/sign-wise/issues"
+  },
+  "homepage": "https://github.com/shaurya-sharma064/sign-wise#readme",
+  "dependencies": {
+    "aws-sdk": "^2.1520.0",
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql": "^2.18.1",
+    "nodemon": "^3.0.2",
+    "openai": "^4.22.1"
+  }
+}
