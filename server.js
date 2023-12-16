@@ -167,8 +167,8 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
         assistant_id:constants.OPEN_AI_ASSITANT_ID
     })
 
-    const messageId=run.id
-    console.log("Message Id",messageId)
+  
+
     let status=""
     while(status!="completed"){
         const test = await openai.beta.threads.runs.retrieve(
@@ -180,8 +180,9 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
    
     
     const messages= await openai.beta.threads.messages.list(threadId);
-
     resultant=JSON.parse(messages.body.data[0].content[0].text.value)
+    const messageId=messages.body.data[0].id
+    
     lang=req?.query?.lang
     if(lang && lang!="en"){
       for (let key in resultant){
@@ -233,6 +234,9 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
     // res.json({ OCR: res });
 
 });
+
+
+
 
 
 // POST route
