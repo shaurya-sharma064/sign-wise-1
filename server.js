@@ -11,7 +11,20 @@ const constants=require('./constants');
 const multer= require('multer');
 const upload = multer({ dest: "consult-images/" })
 const OpenAI=require('openai');
+require('dotenv').config();
+const {Translate}=require('@google-cloud/translate').v2;
+const {TranslationServiceClient} = require('@google-cloud/translate');
 
+
+const CREDENTIALS=JSON.parse(process.env.CREDENTIALS)
+
+const translate= new Translate({
+  credentials:CREDENTIALS,
+  projectId:CREDENTIALS.project_id
+})
+
+const translationClient = new TranslationServiceClient({ credentials:CREDENTIALS,
+  projectId:CREDENTIALS.project_id});
 // const db = mysql.createConnection({
 //     host: 'stage-db-copy.c9bzeeqg7edj.ap-south-1.rds.amazonaws.com',
 //     user: 'souser',
@@ -22,6 +35,8 @@ const OpenAI=require('openai');
 const openai=new OpenAI({
     apiKey: constants.OPENAI_ACCESS_KEY
 })
+
+
 
 const db = mysql.createConnection({
     host: constants.DB_HOST,
@@ -49,11 +64,11 @@ const uploadImagesV2 = async (anaylsisId, images) => {
         const promises = images.map((img,id) => {
             const filename = String(id);
             imageUrls.push(filename);
-            if (consultationId) {
+            if (anaylsisId) {
             return uploadImageToS3(
                 filename,
                 img,
-                constants?.AWS_BUCKET_NAME
+                constants?.AWS_BUCKET_NAME+"/"+String(anaylsisId)
             );
             }
             return uploadImageToS3(filename, base64Encoded);
@@ -68,23 +83,12 @@ const uploadImagesV2 = async (anaylsisId, images) => {
 
     }
 
-    async function executeQuery(query) {
-        try {
-          const connection = await pool.getConnection();
-          const [rows, fields] = await connection.execute(query);
-          connection.release();
-        } catch (err) {
-          console.error('Error executing the query:', err);
-        } finally {
-          pool.end();
-        }
-      }
-
 
 async function uploadImageToS3(
     file,
     image,
     bucket = constants.AWS_BUCKET_NAME
+
     ) {
     let status = false;
     const upload = s3
@@ -125,9 +129,6 @@ app.get('/health', (req, res) => {
  
 //POST route
 app.post('/file-upload',upload.array("files",12),async (req,res)=>{
-
-    
-
     const images=req?.files;
     console.log(images)
     const url="https://vision.googleapis.com/v1/images:annotate?key="+constants.GOOLE_VISION_API_KEY;
@@ -152,17 +153,13 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
     for (const res of res_array){
         concated_ocr+=res.data.responses[0].fullTextAnnotation.text;
     }
-
-    // console.log(concated_ocr.length);
-    // return;
-
-
+    concated_ocr=concated_ocr.substring(0,32000)
     const thread= await openai.beta.threads.create();
     const threadId=thread.id;
 
     const message= await openai.beta.threads.messages.create(threadId,{
         role:'user',
-        content: concated_ocr.substring(0,32000)
+        content: concated_ocr
     })
 
     
@@ -170,7 +167,8 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
         assistant_id:constants.OPEN_AI_ASSITANT_ID
     })
 
-
+    const messageId=run.id
+    console.log("Message Id",messageId)
     let status=""
     while(status!="completed"){
         const test = await openai.beta.threads.runs.retrieve(
@@ -179,20 +177,62 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
         )
         status=test.status
     }
+   
     
     const messages= await openai.beta.threads.messages.list(threadId);
-    resultant=messages.body.data[0].content[0].text.value
-   
 
-    // const query = "INSERT INTO consult_data () VALUES ();"
+    resultant=JSON.parse(messages.body.data[0].content[0].text.value)
+    lang=req?.query?.lang
+    if(lang && lang!="en"){
+      for (let key in resultant){
+        if (resultant.hasOwnProperty(key)) {
+          try{
+            [data]=await translate.translate(resultant[key],lang)
+            resultant[key]= data
+          }catch(e){
+            console.log(e)
+
+          }
+          
+        }
+      }
+      try{
+        for (let key in resultant["parties"]){
+          for(let innerkey in resultant["parties"][key]){
+            try{
+              [data]=await translate.translate(resultant["parties"][key][innerkey],lang)
+              resultant["parties"][key][innerkey]= data
+            }catch(e){
+              console.log(e)
+            }
+          }
+        }
+
+      }catch(e){
+        console.log(e)
+      }
+      
+    }
+   
+    const query = "INSERT INTO consultation_data (thread_id,message_id) VALUES ('"+ threadId +"','"+ messageId+"');"
+    console.log(query)
+    db.query(query, (err, result) => {
+        if (err) {
+          console.error('Error executing query:', err);
+        } else {
+          console.log('Query executed successfully:', result);
+          uploadImagesV2(result.insertId,[JSON.stringify(resultant)])
+        }
+        db.end();
+      });
+    
+    //res.json({ });
     // executeQuery(query)
     // uploadImagesV2(,images)
-    res.json({ parsed: JSON.parse(resultant)});
+    res.json({ parsed: resultant,threadId:threadId});
     // res.json({ OCR: res });
 
 });
-
-
 
 
 // POST route
