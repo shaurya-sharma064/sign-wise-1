@@ -180,13 +180,13 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
     }
     
     const messages= await openai.beta.threads.messages.list(threadId);
-    res=messages.body.data[0].content[0].text.value
+    resultant=messages.body.data[0].content[0].text.value
    
 
     // const query = "INSERT INTO consult_data () VALUES ();"
     // executeQuery(query)
     // uploadImagesV2(,images)
-    res.json({ parsed: JSON.parse(res),res:res });
+    res.json({ parsed: JSON.parse(resultant)});
     // res.json({ OCR: res });
 
 });
