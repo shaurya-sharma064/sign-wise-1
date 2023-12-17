@@ -235,6 +235,9 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
         for (let key in resultant["parties"]){
           for(let innerkey in resultant["parties"][key]){
             try{
+              if( innerKey === "partyRisk"){
+                continue;
+              }
               [data]=await translate.translate(resultant["parties"][key][innerkey],lang)
               resultant["parties"][key][innerkey]= data
             }catch(e){
