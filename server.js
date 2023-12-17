@@ -272,6 +272,46 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
 
 });
 
+app.post('/insight',async (req,res)=>{
+  const threadId = req.body.threadId;
+  const partyName = req.body.partyName;
+
+  const message= await openai.beta.threads.messages.create(threadId,{
+      role:'user',
+      content: `For \"partyName\":${partyName}, elaborate out on each risk in \"keyRisks\" on why is that a risk and rate each risk among Very High/High/Medium/low/very low. Additionally give risk mitigation strategy for each risk in the \"keyRisks\"`
+  })
+
+
+  const run = await openai.beta.threads.runs.create(threadId,{
+      assistant_id:constants.OPEN_AI_ASSITANT_ID
+  })
+
+
+  let status=""
+  while(status!="completed"){
+      const test = await openai.beta.threads.runs.retrieve(
+          threadId, 
+          run.id
+      )
+      status=test.status
+  }
+
+  const messages= await openai.beta.threads.messages.list(threadId);
+  resultant=messages.body.data[0].content[0].text.value;
+  const messageId = messages.body.data[0].id;
+  const query = `update consultation_data set insight_message_id = '${messageId}' where thread_id = '${threadId}'`;
+    console.log(query)
+    db.query(query, (err, result) => {
+        if (err) {
+          console.error('Error executing query:', err);
+        } else {
+          console.log('Query executed successfully:', result);
+        }
+        db.end();
+      });
+  res.json({ parsed: JSON.parse(resultant)});
+})
+
 
 const getSignedUrlAWS = async (awsParams) => {
   try {
