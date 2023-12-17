@@ -25,26 +25,28 @@ const translate= new Translate({
 
 const translationClient = new TranslationServiceClient({ credentials:CREDENTIALS,
   projectId:CREDENTIALS.project_id});
-// const db = mysql.createConnection({
-//     host: 'stage-db-copy.c9bzeeqg7edj.ap-south-1.rds.amazonaws.com',
-//     user: 'souser',
-//     password: 'nv2VN0wAw6Ljw1iW',
-//     database: 'sodb',
-//   });
-
 const openai=new OpenAI({
     apiKey: constants.OPENAI_ACCESS_KEY
 })
 
 
 
-const db = mysql.createConnection({
+const dbMaker=()=> {
+
+  const db=mysql.createConnection({
     host: constants.DB_HOST,
     user: constants.DB_USER,
     password: constants.DB_PASSWORD,
     database: constants.DB_DATABASE,
     port: constants.DB_PORT,
   });
+  db.connect();
+  return db
+
+
+}
+  
+
 
   
 
@@ -148,13 +150,7 @@ async function getS3ObjectByFileName(pageName, bucketName) {
      
 
 
-db.connect((err) => {
-if (err) {
-    console.error('Error connecting to MySQL:', err);
-} else {
-    console.log('Connected to MySQL database');
-}
-});
+
 
 // Middleware to parse JSON in request body
 app.use(bodyParser.json());
@@ -166,6 +162,7 @@ app.get('/health', (req, res) => {
  
 //POST route
 app.post('/file-upload',upload.array("files",12),async (req,res)=>{
+  const db = dbMaker();
     const images=req?.files;
     console.log(images)
     const url="https://vision.googleapis.com/v1/images:annotate?key="+constants.GOOLE_VISION_API_KEY;
@@ -273,6 +270,7 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
 });
 
 app.post('/insight',async (req,res)=>{
+  const db = dbMaker();
   const threadId = req.body.threadId;
   const partyName = req.body.partyName;
 
@@ -330,6 +328,7 @@ const getSignedUrlAWS = async (awsParams) => {
 
 // Get Route
 app.get('/get-list',(req,res)=>{
+  const db = dbMaker();
   const query="SELECT * FROM consultation_data;"
   anaylsisIds=[]
   db.query(query,async (err,result)=>{
