@@ -65,13 +65,14 @@ const uploadImagesV2 = async (anaylsisId, images) => {
             const filename = String(id);
             imageUrls.push(filename);
             if (anaylsisId) {
-            return uploadImageToS3(
-                filename,
+            return uploadFileToS3(
+                String(anaylsisId)+"/"+filename,
+                constants?.AWS_BUCKET_NAME,
                 img,
-                constants?.AWS_BUCKET_NAME+"/"+String(anaylsisId)
+                'json'
             );
             }
-            return uploadImageToS3(filename, base64Encoded);
+          
         });
         const imageUploadStatus = await Promise.all(promises);
         return imageUrls;
@@ -82,6 +83,29 @@ const uploadImagesV2 = async (anaylsisId, images) => {
         }
 
     }
+
+    async function uploadFileToS3(fileName, bucketName, body, contentType) {
+      let status = false; 
+      const params = {
+        Bucket: bucketName,
+        Key: fileName+".json",
+        Body: JSON.stringify(body),
+      };
+      //contentType && (params.ContentType = contentType);
+      const upload = s3.upload(params).promise();
+    
+      await upload
+        .then(function (data) {
+          status = true;
+        })
+        .catch(function (error) {
+          logger.error("error in S3 image upload");
+          console.log(error.message);
+          status = false;
+        });
+      return status;
+    }
+    
 
 
 async function uploadImageToS3(
@@ -105,7 +129,20 @@ async function uploadImageToS3(
         });
     return status;
     }
-     
+  
+async function getS3ObjectByFileName(pageName, bucketName) {
+  try {
+    const params = {
+      Bucket: bucketName,
+      Key: pageName+".json",
+    };
+
+    const data = await s3.getObject(params).promise();
+    return data.Body.toString("utf-8");
+  } catch (e) {
+    throw new Error(`Could not retrieve file from S3: ${e.message}`);
+  }
+}
     
   
      
@@ -222,7 +259,7 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
           console.error('Error executing query:', err);
         } else {
           console.log('Query executed successfully:', result);
-          uploadImagesV2(result.insertId,[JSON.stringify(resultant)])
+          uploadImagesV2(result.insertId,[resultant])
         }
         db.end();
       });
@@ -234,6 +271,68 @@ app.post('/file-upload',upload.array("files",12),async (req,res)=>{
     // res.json({ OCR: res });
 
 });
+
+
+const getSignedUrlAWS = async (awsParams) => {
+  try {
+    const signedUrl = await s3.getSignedUrl("getObject", awsParams);
+    return signedUrl;
+  } catch (err) {
+    logger.info(
+      "Error occured while getting signed url",
+      (err).message
+    );
+    return false;
+  }
+};
+
+
+
+// Get Route
+app.get('/get-list',(req,res)=>{
+  const query="SELECT * FROM consultation_data;"
+  anaylsisIds=[]
+  db.query(query,async (err,result)=>{
+    if(err){
+      console.log(err)
+    }else{
+      for(ele in result){
+        anaylsisIds.push(result[ele]["analysis_id"])
+      }
+      db.end();
+    }
+
+    resultant=[]
+    for(const item of anaylsisIds){
+      path=constants.AWS_BUCKET_NAME+"/"+String(item)
+      fileName="0"
+      jsonObj= await getS3ObjectByFileName(fileName, path)
+      resultant.push(JSON.parse(jsonObj))
+      // const buffer = Buffer.from('7b227469746c65223a22e0a495e0a58de0a4b0e0a587e0a4a1e0a49fe0a49520e0a495e0a4b0e0a58de0a4a120e0a4...', 'hex');
+      // const jsonString = buffer.toString('utf8');
+      // const jsonObject = JSON.parse(jsonString);
+      
+      
+    
+    }
+    // anaylsisIds.map(async (item)=>{
+    //   const path=constants.AWS_BUCKET_NAME+"/"+String(item.anaylsisId)
+    //   res.push(await getSignedUrlAWS(
+    //     {
+    //       Bucket: path,
+    //       Key: "0",
+    //     }
+    //   ))
+    // })
+
+    res.json({resultant:resultant})
+  
+   
+  })
+})
+
+
+
 
 
 
