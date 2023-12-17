@@ -279,7 +279,7 @@ app.post('/insight',async (req,res)=>{
 
   const message= await openai.beta.threads.messages.create(threadId,{
       role:'user',
-      content: `For \"partyName\":${partyName}, elaborate out on each risk in \"keyRisks\" on why is that a risk and rate each risk among Very High/High/Medium/low/very low. Additionally give risk mitigation strategy for each risk in the \"keyRisks\". The \"keyRisk\" should be an array of object having keys \"riskName"\, \"riskRating"\, \"riskExplanation\",\"riskMitigation\"`
+      content: `For \"partyName\":${partyName}, response should be a json object having parent key as keyRisks. Elaborate out on each risk in \"keyRisks\" on why is that a risk and rate each risk among Very High/High/Medium/low/very low. Additionally give risk mitigation strategy for each risk in the \"keyRisks\". The \"keyRisk\" should be an array of object having keys \"riskName"\, \"riskRating"\, \"riskExplanation\",\"riskMitigation\"`
   })
 
 
