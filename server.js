@@ -299,6 +299,7 @@ app.post('/insight',async (req,res)=>{
 
   const messages= await openai.beta.threads.messages.list(threadId);
   resultant=messages.body.data[0].content[0].text.value;
+  console.log(resultant);
   const messageId = messages.body.data[0].id;
   const query = `update consultation_data set insight_message_id = '${messageId}' where thread_id = '${threadId}'`;
     console.log(query)
